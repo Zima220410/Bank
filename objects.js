@@ -60,20 +60,20 @@ function bankDebit(arr) {
     return makeCurrencyTransfer(-sum);
 }
 
-function numbersInactiveDebtors(arr) {
+function numbersDebtors(arr, type) {
     let count = 0;
     arr.forEach(client => {
-        if (!client.isActive && client.creditAccount < 0) {
+        if (client.isActive == type && client.creditAccount < 0) {
             count++;
         }
     });
     return count;
 }
 
-function sumDebitInactiveClients(arr) {
+function sumDebitInactiveClients(arr, type) {
     let sum = 0;
     arr.forEach(client => {
-        if (!client.isActive && client.creditAccount < 0) {
+        if (client.isActive == type && client.creditAccount < 0) {
             sum += client.creditAccount;
         }
     });
