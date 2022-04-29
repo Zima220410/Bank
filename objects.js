@@ -3,79 +3,121 @@
 
 
 class BankClient {
-    constructor(id, name, isActive, debitAccount, creditAccount, creditLimit) {
+    constructor(id, name, isActive) {
         this.id = id;
         this.name = name;
         this.isActive = isActive;
-        this.dataRegistr = new Date();
-        this.debitAccount = debitAccount;
-        this.creditAccount = creditAccount;
+        this.dataRegistrClient = new Date();
+        this.debitAccount = [];
+        this.creditAccount = [];
+    }
+    addDebitAccount(currency, expirationDate, isActive, dateLastActivity, balance) {
+        this.debitAccount.push(new Account(currency, expirationDate, isActive, dateLastActivity, balance));
+    }
+    addCreditAccount(currency, expirationDate, isActive, dateLastActivity, balance, creditLimit) {
+        this.creditAccount.push(new Account(currency, expirationDate, isActive, dateLastActivity, balance, creditLimit));
+    }
+}
+
+class Account {
+    constructor(currency, expirationDate, isActive, dateLastActivity, balance, creditLimit = null) {
+        this.currency = currency;
+        this.expirationDate = expirationDate;
+        this.isActive = isActive;
+        this.dateLastActivity = dateLastActivity;
+        this.balance = balance;
         this.creditLimit = creditLimit;
     }
 }
 
 let bank = [
-    new BankClient(100, 'Alex', true, 1000, 1000, 5000),
-    new BankClient(120, 'Den', true, 2000, -1000, 3000),
-    new BankClient(140, 'Max', false, 0, -2000, 4000)
+    new BankClient(100, 'Alex', true),
+    new BankClient(120, 'Den', true),
+    new BankClient(140, 'Max', false)
 ];
 
-function makeCurrencyTransfer(date, come = 'UAH', out = 'USD') {
-    fetch('https://api.privatbank.ua/p24api/pubinfo?json&exchange&coursid=5')
-        .then(res => res.json())
-        .then(res => {
-            let result = 0;
-            let coef = 1;
+function addClient(id, name, isActive) {
+    bank.push(new BankClient(id, name, isActive));
+}
+
+async function requestExchangeRate() {
+    let promise = await fetch('https://api.privatbank.ua/p24api/pubinfo?json&exchange&coursid=5');
+    let exchangeObj = await promise.json()
+    return exchangeObj;
+}
+
+async function bankMoney(arr) {
+    let sum = 0;
+    await requestExchangeRate().then(res => {
+        arr.forEach(client => {
+            client.debitAccount.forEach(data => sum += currencyTransfer(data, data.balance, res));
+            client.creditAccount.forEach(data => sum += currencyTransfer(data, data.balance, res));
+        });
+    });
+    return sum;
+}
+
+function currencyTransfer(data, temp, res, out = 'USD') {
+    let result = 0;
+    let coef = 1;
+    res.forEach(val => {
+        if (data.currency === val.ccy) {
             res.forEach(val => {
-                if (come == val.ccy) {
-                    res.forEach(val => {
-                        if (out == val.ccy) {
-                            coef = val.sale;
-                        }
-                    })
-                    result = date * val.buy / coef;
-                } else if (val.base_ccy == come && val.ccy == out) {
-                    result = date / val.sale;
+                if (out === val.ccy) {
+                    coef = val.buy;
                 }
             });
-        })
-        .catch(() => {
-            throw new Error('Data download error');
-        });
-}
-
-function bankMoney(arr) {
-    let sum = 0;
-    arr.forEach(client => sum += client.debitAccount + client.creditAccount + client.creditLimit);
-    return makeCurrencyTransfer(sum);
-}
-
-function bankDebit(arr) {
-    let sum = 0;
-    arr.forEach(client => {
-        if (client.creditAccount < 0) {
-            sum += client.creditAccount;
+            result = temp * val.buy / coef;
+        } else if (val.base_ccy === data.currency && val.ccy === out) {
+            result = temp / val.buy;
         }
     });
-    return makeCurrencyTransfer(-sum);
+    return result;
 }
 
-function numbersDebtors(arr, type) {
+async function bankDebit(arr) {
+    let sum = 0;
+    await requestExchangeRate().then(res => {
+        arr.forEach(client => {
+            client.creditAccount.forEach(data => {
+                if (data.creditLimit > data.balance) {
+                    temp = data.creditLimit - data.balance;
+                    sum += currencyTransfer(data, temp, res);
+                }
+            });
+        });
+    });
+    return sum;
+}
+
+async function sumDebitInactiveClients(arr, activityType) {
+    let sum = 0;
+    let temp = 0;
+    await requestExchangeRate().then(res => {
+        arr.forEach(client => {
+            if (client.isActive === activityType) {
+                client.creditAccount.forEach(data => {
+                    if ((data.creditLimit - data.balance) < 0) {
+                        temp = data.balance - data.creditLimit;
+                        sum += currencyTransfer(data, temp, res);
+                    }
+                });
+            }
+        });
+    });
+    return sum;
+}
+
+function numbersDebtors(arr, activityType) {
     let count = 0;
     arr.forEach(client => {
-        if (client.isActive == type && client.creditAccount < 0) {
-            count++;
+        if (client.isActive === activityType) {
+            client.creditAccount.forEach(data => {
+                if ((data.creditLimit - data.balance) < 0) {
+                    count++;
+                }
+            });
         }
     });
     return count;
-}
-
-function sumDebitInactiveClients(arr, type) {
-    let sum = 0;
-    arr.forEach(client => {
-        if (client.isActive == type && client.creditAccount < 0) {
-            sum += client.creditAccount;
-        }
-    });
-    return -sum;
 }
