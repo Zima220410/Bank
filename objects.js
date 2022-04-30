@@ -8,14 +8,14 @@ class BankClient {
         this.name = name;
         this.isActive = isActive;
         this.dataRegistrClient = new Date();
-        this.debitAccount = [];
-        this.creditAccount = [];
+        this.debitAccounts = [];
+        this.creditAccounts = [];
     }
     addDebitAccount(currency, expirationDate, isActive, dateLastActivity, balance) {
-        this.debitAccount.push(new Account(currency, expirationDate, isActive, dateLastActivity, balance));
+        this.debitAccounts.push(new Account(currency, expirationDate, isActive, dateLastActivity, balance));
     }
     addCreditAccount(currency, expirationDate, isActive, dateLastActivity, balance, creditLimit) {
-        this.creditAccount.push(new Account(currency, expirationDate, isActive, dateLastActivity, balance, creditLimit));
+        this.creditAccounts.push(new Account(currency, expirationDate, isActive, dateLastActivity, balance, creditLimit));
     }
 }
 
@@ -48,28 +48,34 @@ async function requestExchangeRate() {
 
 async function bankMoney(arr) {
     let sum = 0;
-    await requestExchangeRate().then(res => {
-        arr.forEach(client => {
-            client.debitAccount.forEach(data => sum += currencyTransfer(data, data.balance, res));
-            client.creditAccount.forEach(data => sum += currencyTransfer(data, data.balance, res));
-        });
+    await requestExchangeRate().then(exchangeRates => {
+        for (let client of arr) {
+            getSumAccountsClient(client.debitAccounts);
+            getSumAccountsClient(client.creditAccounts);
+        }
+        function getSumAccountsClient(client) {
+            for (let data of client) {
+                sum += currencyConversion(data, data.balance, exchangeRates);
+            }
+        }
     });
     return sum;
 }
 
-function currencyTransfer(data, temp, res, out = 'USD') {
+function currencyConversion(data, balance, exchangeRates, out) {
     let result = 0;
     let coef = 1;
-    res.forEach(val => {
+    out = out || 'USD';
+    exchangeRates.forEach(val => {
         if (data.currency === val.ccy) {
             res.forEach(val => {
                 if (out === val.ccy) {
                     coef = val.buy;
                 }
             });
-            result = temp * val.buy / coef;
+            result = balance * val.buy / coef;
         } else if (val.base_ccy === data.currency && val.ccy === out) {
-            result = temp / val.buy;
+            result = balance / val.buy;
         }
     });
     return result;
@@ -77,12 +83,13 @@ function currencyTransfer(data, temp, res, out = 'USD') {
 
 async function bankDebit(arr) {
     let sum = 0;
-    await requestExchangeRate().then(res => {
+    let debtBalance = 0;
+    await requestExchangeRate().then(exchangeRates => {
         arr.forEach(client => {
-            client.creditAccount.forEach(data => {
+            client.creditAccounts.forEach(data => {
                 if (data.creditLimit > data.balance) {
-                    temp = data.creditLimit - data.balance;
-                    sum += currencyTransfer(data, temp, res);
+                    debtBalance = data.creditLimit - data.balance;
+                    sum += currencyConversion(data, debtBalance, exchangeRates);
                 }
             });
         });
@@ -92,14 +99,14 @@ async function bankDebit(arr) {
 
 async function sumDebitInactiveClients(arr, activityType) {
     let sum = 0;
-    let temp = 0;
-    await requestExchangeRate().then(res => {
+    let debtBalance = 0;
+    await requestExchangeRate().then(exchangeRates => {
         arr.forEach(client => {
             if (client.isActive === activityType) {
-                client.creditAccount.forEach(data => {
+                client.creditAccounts.forEach(data => {
                     if ((data.creditLimit - data.balance) < 0) {
-                        temp = data.balance - data.creditLimit;
-                        sum += currencyTransfer(data, temp, res);
+                        debtBalance = data.balance - data.creditLimit;
+                        sum += currencyConversion(data, debtBalance, exchangeRates);
                     }
                 });
             }
@@ -112,7 +119,7 @@ function numbersDebtors(arr, activityType) {
     let count = 0;
     arr.forEach(client => {
         if (client.isActive === activityType) {
-            client.creditAccount.forEach(data => {
+            client.creditAccounts.forEach(data => {
                 if ((data.creditLimit - data.balance) < 0) {
                     count++;
                 }
