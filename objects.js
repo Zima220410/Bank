@@ -99,8 +99,7 @@ async function sumDebitInactiveClients(arrayBankCustomers, activityType) {
 
 async function requestExchangeRate() {
     let promise = await fetch('https://api.privatbank.ua/p24api/pubinfo?json&exchange&coursid=5');
-    let exchangeObj = await promise.json();
-    return exchangeObj;
+    return await promise.json(); 
 }
 
 function currencyConversion(account, balance, exchangeRates, out) {
