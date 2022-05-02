@@ -50,17 +50,12 @@ async function bankMoney(arr) {
     let sum = 0;
     await requestExchangeRate().then(exchangeRates => {
         for (let client of arr) {
-            getSumAccountsClient(client.debitAccounts);
-            getSumAccountsClient(client.creditAccounts);
-        }
-        function getSumAccountsClient(client) {
-            for (let data of client) {
-                sum += currencyConversion(data, data.balance, exchangeRates);
-            }
+            [...client.creditAccounts, ...client.debitAccounts].forEach(data => sum += currencyConversion(data, data.balance, exchangeRates));
         }
     });
     return sum;
 }
+bankMoney(bank);
 
 function currencyConversion(data, balance, exchangeRates, out) {
     let result = 0;
@@ -68,7 +63,7 @@ function currencyConversion(data, balance, exchangeRates, out) {
     out = out || 'USD';
     exchangeRates.forEach(val => {
         if (data.currency === val.ccy) {
-            res.forEach(val => {
+            exchangeRates.forEach(val => {
                 if (out === val.ccy) {
                     coef = val.buy;
                 }
