@@ -39,25 +39,25 @@ function addClient(id, name, isActive) {
     bank.push(new BankClient(id, name, isActive));
 }
 
-async function bankMoney(array) {
+async function bankMoney(arrayBankCustomers) {
     let sum = 0;
     await requestExchangeRate().then(exchangeRates => {
-        array.forEach(client => {
-            [...client.creditAccounts, ...client.debitAccounts].forEach(data => sum += currencyConversion(data, data.balance, exchangeRates));
+        arrayBankCustomers.forEach(client => {
+            [...client.creditAccounts, ...client.debitAccounts].forEach(account => sum += currencyConversion(account, account.balance, exchangeRates));
         });
     });
     return sum;
 }
 
-async function bankDebit(array) {
+async function bankDebit(arrayBankCustomers) {
     let sum = 0;
     let debtBalance = 0;
     await requestExchangeRate().then(exchangeRates => {
-        array.forEach(client => {
-            client.creditAccounts.forEach(data => {
-                if (data.creditLimit > data.balance) {
-                    debtBalance = data.creditLimit - data.balance;
-                    sum += currencyConversion(data, debtBalance, exchangeRates);
+        arrayBankCustomers.forEach(client => {
+            client.creditAccounts.forEach(account => {
+                if (account.creditLimit > account.balance) {
+                    debtBalance = account.creditLimit - account.balance;
+                    sum += currencyConversion(account, debtBalance, exchangeRates);
                 }
             });
         });
@@ -65,12 +65,12 @@ async function bankDebit(array) {
     return sum;
 }
 
-function numbersDebtors(array, activityType) {
+function numbersDebtors(arrayBankCustomers, activityType) {
     let count = 0;
-    array.forEach(client => {
+    arrayBankCustomers.forEach(client => {
         if (client.isActive === activityType) {
-            client.creditAccounts.forEach(data => {
-                if ((data.creditLimit - data.balance) < 0) {
+            client.creditAccounts.forEach(account => {
+                if ((account.creditLimit - account.balance) < 0) {
                     count++;
                 }
             });
@@ -79,16 +79,16 @@ function numbersDebtors(array, activityType) {
     return count;
 }
 
-async function sumDebitInactiveClients(array, activityType) {
+async function sumDebitInactiveClients(arrayBankCustomers, activityType) {
     let sum = 0;
     let debtBalance = 0;
     await requestExchangeRate().then(exchangeRates => {
-        array.forEach(client => {
+        arrayBankCustomers.forEach(client => {
             if (client.isActive === activityType) {
-                client.creditAccounts.forEach(data => {
-                    if ((data.creditLimit - data.balance) < 0) {
-                        debtBalance = data.balance - data.creditLimit;
-                        sum += currencyConversion(data, debtBalance, exchangeRates);
+                client.creditAccounts.forEach(account => {
+                    if ((account.creditLimit - account.balance) < 0) {
+                        debtBalance = account.balance - account.creditLimit;
+                        sum += currencyConversion(account, debtBalance, exchangeRates);
                     }
                 });
             }
@@ -99,24 +99,24 @@ async function sumDebitInactiveClients(array, activityType) {
 
 async function requestExchangeRate() {
     let promise = await fetch('https://api.privatbank.ua/p24api/pubinfo?json&exchange&coursid=5');
-    let exchangeObj = await promise.json()
+    let exchangeObj = await promise.json();
     return exchangeObj;
 }
 
-function currencyConversion(data, balance, exchangeRates, out) {
+function currencyConversion(account, balance, exchangeRates, out) {
     let result = 0;
     let coef = 1;
     out = out || 'USD';
-    exchangeRates.forEach(val => {
-        if (data.currency === val.ccy) {
-            exchangeRates.forEach(val => {
-                if (out === val.ccy) {
-                    coef = val.buy;
+    exchangeRates.forEach(eachCurrency => {
+        if (account.currency === eachCurrency.ccy) {
+            exchangeRates.forEach(eachCurrency => {
+                if (out === eachCurrency.ccy) {
+                    coef = eachCurrency.buy;
                 }
             });
-            result = balance * val.buy / coef;
-        } else if (val.base_ccy === data.currency && val.ccy === out) {
-            result = balance / val.buy;
+            result = balance * eachCurrency.buy / coef;
+        } else if (eachCurrency.base_ccy === account.currency && eachCurrency.ccy === out) {
+            result = balance / eachCurrency.buy;
         }
     });
     return result;
