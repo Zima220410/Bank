@@ -1,3 +1,4 @@
+'use strict';
 // Объекты
 // 1.	Клиенты банка, имеют такие характеристики - фио, активный или нет, дата регистрации в банке, счета. Существует два типа счетов: дебетовый и кредитовый. Дебитовый счет имеет текущий баланс либо он положителен либо нулевой. Кредитовый счет имеет два баланса: личные средства, кредитные средства и кредитный лимит. У каждого счета есть активность, дата активности когда заканчивается срок годности пластиковой карты. У каждого счета есть тип валюты, UAH, RUB, USD, GBP, EUR и другие. Подсчитать общее количество денег внутри банка в долларовом эквиваленте учитывая кредитные лимиты и снятие средств. Посчитать сколько всего денег в долларовом эквиваленте все клиенты должны банку. Посчитать сколько неактивных клиентов должны погасить кредит банку и на какую общую сумму. Аналогично для активных. Для получения актуальных курсов валют использовать API (которое будет предоставлено). Промисы использовать для работы с API в целях отправки запросов на сервер. Создать отдельный git-репозиторий для этого проекта и дальше работать с этим проектом в этом репозитории.
 
@@ -29,94 +30,94 @@ class Account {
     }
 }
 
-let bank = [
-    new BankClient(100, 'Alex', true),
-    new BankClient(120, 'Den', true),
-    new BankClient(140, 'Max', false)
-];
+export class Bank {
+    constructor() {
+        this.bank = [];
+    }
 
-function addClient(id, name, isActive) {
-    bank.push(new BankClient(id, name, isActive));
-}
+    addClient(id, name, isActive) {
+        this.bank.push(new BankClient(id, name, isActive));
+    }
 
-async function bankMoney(arrayBankCustomers) {
-    let sum = 0;
-    await requestExchangeRate().then(exchangeRates => {
-        arrayBankCustomers.forEach(client => {
-            [...client.creditAccounts, ...client.debitAccounts].forEach(account => sum += currencyConversion(account, account.balance, exchangeRates));
-        });
-    });
-    return sum;
-}
-
-async function bankDebit(arrayBankCustomers) {
-    let sum = 0;
-    let debtBalance = 0;
-    await requestExchangeRate().then(exchangeRates => {
-        arrayBankCustomers.forEach(client => {
-            client.creditAccounts.forEach(account => {
-                if (account.creditLimit > account.balance) {
-                    debtBalance = account.creditLimit - account.balance;
-                    sum += currencyConversion(account, debtBalance, exchangeRates);
-                }
+    async bankMoney(arrayBankCustomers) {
+        let sum = 0;
+        await this.requestExchangeRate().then(exchangeRates => {
+            arrayBankCustomers.forEach(client => {
+                [...client.creditAccounts, ...client.debitAccounts].forEach(account => sum += currencyConversion(account, account.balance, exchangeRates));
             });
         });
-    });
-    return sum;
-}
+        return sum;
+    }
 
-function numbersDebtors(arrayBankCustomers, activityType) {
-    let count = 0;
-    arrayBankCustomers.forEach(client => {
-        if (client.isActive === activityType) {
-            client.creditAccounts.forEach(account => {
-                if ((account.creditLimit - account.balance) < 0) {
-                    count++;
-                }
+    async bankDebit(arrayBankCustomers) {
+        let sum = 0;
+        let debtBalance = 0;
+        await this.requestExchangeRate().then(exchangeRates => {
+            arrayBankCustomers.forEach(client => {
+                client.creditAccounts.forEach(account => {
+                    if (account.creditLimit > account.balance) {
+                        debtBalance = account.creditLimit - account.balance;
+                        sum += this.currencyConversion(account, debtBalance, exchangeRates);
+                    }
+                });
             });
-        }
-    });
-    return count;
-}
+        });
+        return sum;
+    }
 
-async function sumDebitInactiveClients(arrayBankCustomers, activityType) {
-    let sum = 0;
-    let debtBalance = 0;
-    await requestExchangeRate().then(exchangeRates => {
+    numbersDebtors(arrayBankCustomers, activityType) {
+        let count = 0;
         arrayBankCustomers.forEach(client => {
             if (client.isActive === activityType) {
                 client.creditAccounts.forEach(account => {
                     if ((account.creditLimit - account.balance) < 0) {
-                        debtBalance = account.balance - account.creditLimit;
-                        sum += currencyConversion(account, debtBalance, exchangeRates);
+                        count++;
                     }
                 });
             }
         });
-    });
-    return sum;
-}
+        return count;
+    }
 
-async function requestExchangeRate() {
-    let promise = await fetch('https://api.privatbank.ua/p24api/pubinfo?json&exchange&coursid=5');
-    return await promise.json(); 
-}
-
-function currencyConversion(account, balance, exchangeRates, out) {
-    let result = 0;
-    let coef = 1;
-    out = out || 'USD';
-    exchangeRates.forEach(eachCurrency => {
-        if (account.currency === eachCurrency.ccy) {
-            exchangeRates.forEach(eachCurrency => {
-                if (out === eachCurrency.ccy) {
-                    coef = eachCurrency.buy;
+    async sumDebitInactiveClients(arrayBankCustomers, activityType) {
+        let sum = 0;
+        let debtBalance = 0;
+        await this.requestExchangeRate().then(exchangeRates => {
+            arrayBankCustomers.forEach(client => {
+                if (client.isActive === activityType) {
+                    client.creditAccounts.forEach(account => {
+                        if ((account.creditLimit - account.balance) < 0) {
+                            debtBalance = account.balance - account.creditLimit;
+                            sum += this.currencyConversion(account, debtBalance, exchangeRates);
+                        }
+                    });
                 }
             });
-            result = balance * eachCurrency.buy / coef;
-        } else if (eachCurrency.base_ccy === account.currency && eachCurrency.ccy === out) {
-            result = balance / eachCurrency.buy;
-        }
-    });
-    return result;
+        });
+        return sum;
+    }
+
+    async requestExchangeRate() {
+        let promise = await fetch('https://api.privatbank.ua/p24api/pubinfo?json&exchange&coursid=5');
+        return await promise.json();
+    }
+
+    currencyConversion(account, balance, exchangeRates, out) {
+        let result = 0;
+        let coef = 1;
+        out = out || 'USD';
+        exchangeRates.forEach(eachCurrency => {
+            if (account.currency === eachCurrency.ccy) {
+                exchangeRates.forEach(eachCurrency => {
+                    if (out === eachCurrency.ccy) {
+                        coef = eachCurrency.buy;
+                    }
+                });
+                result = balance * eachCurrency.buy / coef;
+            } else if (eachCurrency.base_ccy === account.currency && eachCurrency.ccy === out) {
+                result = balance / eachCurrency.buy;
+            }
+        });
+        return result;
+    }
 }
