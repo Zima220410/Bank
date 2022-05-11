@@ -1,13 +1,75 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bank</title>
-    
 </head>
 <body>
-    <script type="mudule" src="objects.js"></script>
+    <div>
+        <form class="add_client">
+            <p>Добавление нового клиента</p>
+            <input class="add_id_client" type="text" placeholder="Введите ID клиента">
+            <input class="add_name_client" type="text" placeholder="Введите имя клиента">
+            Активный клиент?
+            <input class="add_isactive" type="checkbox">
+            <button>Подтвердить</button>
+        </form>
+    </div>
+    <div>
+        <form class="add_debit_account">
+            <div>Добавление дебитного счета</div>
+            <select class="add_debit_currency">
+                <option value="USD" selected="selected">USD</option>
+                <option value="EUR">EUR</option>
+                <option value="UAH">UAH</option>
+            </select>
+            <input class="add_debit_balance" type="text" placeholder="Введите баланс">
+            <button>Добавить дебетовый счет</button>
+        </form>
+    </div>
+    <div>
+        <form class="add_credit_account">
+            <div>Добавление кредитного счета</div>
+            <select class="add_credit_currency">
+                <option value="USD" selected="selected">USD</option>
+                <option value="EUR">EUR</option>
+                <option value="UAH">UAH</option>
+            </select>
+            <input class="add_credit_balance" type="text" placeholder="Введите баланс">
+            <input class="add_credit_limit" type="text" placeholder="Введите лимит">
+            <button>Добавить кредитовый счет</button>
+        </form>
+    </div>
+    <div>Вы добавили :
+        <div class="res_adding"></div>
+        <div class="res_deb_account"></div>
+        <div class="res_credit_account"></div>
+    </div>
+    <div>
+        <form class="find">
+            <p>Поиск клиента по ID</p>
+            <input class="find_by_id" type="text" placeholder="Введите ID клиента">
+            <button>Подтвердить</button>
+            <input id="del" type="button" value="Удалить">
+        </form>
+        <div>Данные о клиенте :
+            <div class="res_finding"></div>
+            <div class="res_finding_deb_account"></div>
+            <div class="res_finding_cred_account"></div>
+        </div>
+    </div>
+    <p></p>
+    <div>
+        <input id="sum" type="button" value="Сумма денег в банке">
+        <input id="deb_sum" type="button" value="Задолженность бану">
+        <input id="num_deb" type="button" value="Кол-во неактивных должников">
+        <input id="sum_deb_act_clients" type="button" value="Задолженность неактивных клиентов">
+    </div>
+    <div>Результат - 
+        <div class="total_result"></div>
+    </div>
+    <script src="Objects.js"></script>
 </body>
 </html>
