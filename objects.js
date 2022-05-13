@@ -35,7 +35,7 @@ class BankClient {
 }
 
 class Account {
-    constructor(currency, balance, creditLimit = null) {
+    constructor(currency, balance, creditLimit = 0) {
         this.currency = currency;
         this.balance = balance;
         this.creditLimit = creditLimit;
@@ -110,14 +110,8 @@ findForm.addEventListener('submit', (event) => {
     for (let i = 0; i < bank.length; i++) {
         if (bank[i].id === idByFind.value) {
             resultFinding.innerHTML = `ID - ${bank[i].id} , Name - ${bank[i].name} , isActive - ${bank[i].isActive}`;
-            for (let j = 0; j < bank[i].debitAccounts.length; j++) {
-                resultFindingDebAccount.innerHTML +=
-                    `Дебетовый счет в ${bank[i].debitAccounts[j].currency} на сумму ${bank[i].debitAccounts[j].balance} <br>`;
-            }
-            for (let j = 0; j < bank[i].creditAccounts.length; j++) {
-                resultFindingCreditAccount.innerHTML +=
-                    `Кредитовый счет в ${bank[i].creditAccounts[j].currency} на сумму ${bank[i].creditAccounts[j].balance} с лимитом ${bank[i].creditAccounts[j].creditLimit}<br>`;
-            }
+            showAccountsClient(bank[i].debitAccounts, resultFindingDebAccount);
+            showAccountsClient(bank[i].creditAccounts, resultFindingCreditAccount);
             document.querySelector('#del').addEventListener('click', () => {
                 resultFinding.innerHTML = '';
                 clearFindingForm();
@@ -127,6 +121,14 @@ findForm.addEventListener('submit', (event) => {
     }
     event.target.reset();
 });
+
+function showAccountsClient(accountsClient, parent){
+    accountsClient.forEach(account => {
+        parent.innerHTML += `
+            <div> -  в ${account.currency} на сумму ${account.balance} с лимитом ${account.creditLimit}</div>
+        `;
+    });
+}
 
 function clearFindingForm() {
     resultFindingDebAccount.innerHTML = '';
