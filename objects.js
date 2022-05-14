@@ -1,27 +1,6 @@
-let addForm = document.querySelector('.add_client');
-let addId = document.querySelector('.add_id_client');
-let addName = document.querySelector('.add_name_client');
-let addIsActive = document.querySelector('.add_isactive');
-let findForm = document.querySelector('.find');
-let idByFind = document.querySelector('.find_by_id');
-let addFormDebAccount = document.querySelector('.add_debit_account');
-let addDebitCurrency = document.querySelector('.add_debit_currency');
-let addDebitBalance = document.querySelector('.add_debit_balance');
-let addFormCreditAccount = document.querySelector('.add_credit_account');
-let addCreditCurrency = document.querySelector('.add_credit_currency');
-let addCreditBalance = document.querySelector('.add_credit_balance');
-let addCreditLimit = document.querySelector('.add_credit_limit');
-let resultAdding = document.querySelector('.res_adding');
-let resultDebAccount = document.querySelector('.res_deb_account');
-let resultCreditAccount = document.querySelector('.res_credit_account');
-let resultFinding = document.querySelector('.res_finding');
-let resultFindingDebAccount = document.querySelector('.res_finding_deb_account');
-let resultFindingCreditAccount = document.querySelector('.res_finding_cred_account');
-let buttonSumBankMoney = document.querySelector('#sum');
-let buttonSumDebitBank = document.querySelector('#deb_sum');
-let buttonNumbersDebitors = document.querySelector('#num_deb');
-let buttonSumDebitIsactiveClients = document.querySelector('#sum_deb_act_clients');
-let totalResult = document.querySelector('.total_result');
+// Объекты
+// 1.	Клиенты банка, имеют такие характеристики - фио, активный или нет, дата регистрации в банке, счета. Существует два типа счетов: дебетовый и кредитовый. Дебитовый счет имеет текущий баланс либо он положителен либо нулевой. Кредитовый счет имеет два баланса: личные средства, кредитные средства и кредитный лимит. У каждого счета есть активность, дата активности когда заканчивается срок годности пластиковой карты. У каждого счета есть тип валюты, UAH, RUB, USD, GBP, EUR и другие. Подсчитать общее количество денег внутри банка в долларовом эквиваленте учитывая кредитные лимиты и снятие средств. Посчитать сколько всего денег в долларовом эквиваленте все клиенты должны банку. Посчитать сколько неактивных клиентов должны погасить кредит банку и на какую общую сумму. Аналогично для активных. Для получения актуальных курсов валют использовать API (которое будет предоставлено). Промисы использовать для работы с API в целях отправки запросов на сервер. Создать отдельный git-репозиторий для этого проекта и дальше работать с этим проектом в этом репозитории.
+// 2.	Вывести задания из раздела “Объекты” в HTML на страницу браузера. Создать формы добавления новых элементов, реализовать возможность удаления и изменения данных.
 
 class BankClient {
     constructor(id, name, isActive) {
@@ -47,6 +26,13 @@ let bank = [];
 function addClient(id, name, isActive) {
     bank.push(new BankClient(id, name, isActive));
 }
+
+let addForm = document.querySelector('.add_client');
+let addId = document.querySelector('.add_id_client');
+let addName = document.querySelector('.add_name_client');
+let addIsActive = document.querySelector('.add_isactive');
+let resultAdding = document.querySelector('.res_adding');
+
 
 addForm.addEventListener('submit', (event) => {
     event.preventDefault();
@@ -77,10 +63,14 @@ function clearAddForm() {
     resultCreditAccount.innerHTML = '';
 }
 
+let addFormDebAccount = document.querySelector('.add_debit_account');
+let addDebitCurrency = document.querySelector('.add_debit_currency');
+let addDebitBalance = document.querySelector('.add_debit_balance');
+let resultDebAccount = document.querySelector('.res_deb_account');
+
 addFormDebAccount.addEventListener('submit', (event) => {
     event.preventDefault();
     let debitBalance = +addDebitBalance.value;
-
     if (/[\d]+/.test(debitBalance) && bank.length > 0) {
         bank[bank.length - 1].debitAccounts.push(new Account(addDebitCurrency.value, debitBalance));
         resultDebAccount.innerHTML = `Дебетовый счет в ${addDebitCurrency.value} на сумму ${debitBalance}`;
@@ -89,6 +79,12 @@ addFormDebAccount.addEventListener('submit', (event) => {
     }
     event.target.reset();
 });
+
+let addFormCreditAccount = document.querySelector('.add_credit_account');
+let addCreditCurrency = document.querySelector('.add_credit_currency');
+let addCreditBalance = document.querySelector('.add_credit_balance');
+let addCreditLimit = document.querySelector('.add_credit_limit');
+let resultCreditAccount = document.querySelector('.res_credit_account');
 
 addFormCreditAccount.addEventListener('submit', (event) => {
     event.preventDefault();
@@ -103,37 +99,40 @@ addFormCreditAccount.addEventListener('submit', (event) => {
     event.target.reset();
 });
 
+let findForm = document.querySelector('.find');
+let idByFind = document.querySelector('.find_by_id');
+let resultFinding = document.querySelector('.res_finding');
+let resultFindingAccounts = document.querySelector('.res_finding_accounts');
+
 findForm.addEventListener('submit', (event) => {
     event.preventDefault();
     resultFinding.innerHTML = 'Не является клиентом банка';
-    clearFindingForm();
+    resultFindingAccounts.innerHTML = '';
     for (let i = 0; i < bank.length; i++) {
         if (bank[i].id === idByFind.value) {
             resultFinding.innerHTML = `ID - ${bank[i].id} , Name - ${bank[i].name} , isActive - ${bank[i].isActive}`;
-            showAccountsClient(bank[i].debitAccounts, resultFindingDebAccount);
-            showAccountsClient(bank[i].creditAccounts, resultFindingCreditAccount);
-            document.querySelector('#del').addEventListener('click', () => {
-                resultFinding.innerHTML = '';
-                clearFindingForm();
-                bank.splice(i, 1);
+            [...bank[i].debitAccounts, ...bank[i].creditAccounts].forEach(account => {
+                resultFindingAccounts.innerHTML += `<div> -  в ${account.currency} на сумму ${account.balance} с лимитом ${account.creditLimit}</div>`;
             });
         }
     }
     event.target.reset();
 });
 
-function showAccountsClient(accountsClient, parent){
-    accountsClient.forEach(account => {
-        parent.innerHTML += `
-            <div> -  в ${account.currency} на сумму ${account.balance} с лимитом ${account.creditLimit}</div>
-        `;
-    });
-}
+let formDelete = document.querySelector('.delete');
+let idForDelete = document.querySelector('.del_by_id');
 
-function clearFindingForm() {
-    resultFindingDebAccount.innerHTML = '';
-    resultFindingCreditAccount.innerHTML = '';
-}
+formDelete.addEventListener('submit', (event) => {
+    event.preventDefault();
+    for (let i = 0; i < bank.length; i++){
+        if (bank[i].id === idForDelete.value){
+            bank.splice(i, 1);
+        }
+    }
+    event.target.reset();
+});
+
+let totalResult = document.querySelector('.total_result');
 
 async function bankMoney(arrayBankCustomers) {
     let sum = 0;
@@ -216,6 +215,11 @@ function currencyConversion(account, balance, exchangeRates, out) {
     });
     return result;
 }
+
+let buttonSumBankMoney = document.querySelector('#sum');
+let buttonSumDebitBank = document.querySelector('#deb_sum');
+let buttonNumbersDebitors = document.querySelector('#num_deb');
+let buttonSumDebitIsactiveClients = document.querySelector('#sum_deb_act_clients');
 
 buttonSumBankMoney.addEventListener('click', function () {
     bankMoney(bank);
