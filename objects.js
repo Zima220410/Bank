@@ -111,13 +111,20 @@ findForm.addEventListener('submit', (event) => {
     for (let i = 0; i < bank.length; i++) {
         if (bank[i].id === idByFind.value) {
             resultFinding.innerHTML = `ID - ${bank[i].id} , Name - ${bank[i].name} , isActive - ${bank[i].isActive}`;
-            [...bank[i].debitAccounts, ...bank[i].creditAccounts].forEach(account => {
-                resultFindingAccounts.innerHTML += `<div> -  в ${account.currency} на сумму ${account.balance} с лимитом ${account.creditLimit}</div>`;
-            });
+            showAccountsClient(bank[i].debitAccounts, resultFindingAccounts);
+            showAccountsClient(bank[i].creditAccounts, resultFindingAccounts);
         }
     }
     event.target.reset();
 });
+
+function showAccountsClient(accountsClient, parent){
+    accountsClient.forEach(account => {
+        parent.innerHTML += `
+            <div> -  в ${account.currency} на сумму ${account.balance} с лимитом ${account.creditLimit}</div>
+        `;
+    });
+}
 
 let formDelete = document.querySelector('.delete');
 let idForDelete = document.querySelector('.del_by_id');
