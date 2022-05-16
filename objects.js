@@ -141,7 +141,8 @@ async function calculateBankMoney(arrayBankCustomers) {
     let sum = 0;
     await requestExchangeRate().then(exchangeRates => {
         arrayBankCustomers.forEach(client => {
-            [...client.creditAccounts, ...client.debitAccounts].forEach(account => sum += currencyConversion(account, account.balance, exchangeRates));
+            let consolidationAccounts = client.creditAccounts.concat(client.debitAccounts);
+            consolidationAccounts.forEach(account => sum += currencyConversion(account, account.balance, exchangeRates));
         });
     });
     totalResult.innerHTML = sum.toFixed(2);
