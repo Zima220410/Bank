@@ -111,20 +111,16 @@ findForm.addEventListener('submit', (event) => {
     for (let i = 0; i < bank.length; i++) {
         if (bank[i].id === idByFind.value) {
             resultFinding.innerHTML = `ID - ${bank[i].id} , Name - ${bank[i].name} , isActive - ${bank[i].isActive}`;
-            showAccountsClient(bank[i].debitAccounts, resultFindingAccounts);
-            showAccountsClient(bank[i].creditAccounts, resultFindingAccounts);
+            let consolidationAccounts = bank[i].debitAccounts.concat(bank[i].creditAccounts);
+            consolidationAccounts.forEach(account => {
+                resultFindingAccounts.innerHTML += `
+                    <div> -  в ${account.currency} на сумму ${account.balance} с лимитом ${account.creditLimit}</div>
+                `;
+            });
         }
     }
     event.target.reset();
 });
-
-function showAccountsClient(accountsClient, parent){
-    accountsClient.forEach(account => {
-        parent.innerHTML += `
-            <div> -  в ${account.currency} на сумму ${account.balance} с лимитом ${account.creditLimit}</div>
-        `;
-    });
-}
 
 let formDelete = document.querySelector('.delete');
 let idForDelete = document.querySelector('.del_by_id');
@@ -141,7 +137,7 @@ formDelete.addEventListener('submit', (event) => {
 
 let totalResult = document.querySelector('.total_result');
 
-async function bankMoney(arrayBankCustomers) {
+async function calculateBankMoney(arrayBankCustomers) {
     let sum = 0;
     await requestExchangeRate().then(exchangeRates => {
         arrayBankCustomers.forEach(client => {
@@ -151,7 +147,7 @@ async function bankMoney(arrayBankCustomers) {
     totalResult.innerHTML = sum.toFixed(2);
 }
 
-async function bankDebit(arrayBankCustomers) {
+async function calculareBankDebit(arrayBankCustomers) {
     let sum = 0;
     let debtBalance = 0;
     await requestExchangeRate().then(exchangeRates => {
@@ -167,7 +163,7 @@ async function bankDebit(arrayBankCustomers) {
     totalResult.innerHTML = sum.toFixed(2);
 }
 
-function numbersDebtors(arrayBankCustomers, activityType) {
+function countingNumberDebtors(arrayBankCustomers, activityType) {
     let count = 0;
     arrayBankCustomers.forEach(client => {
         if (client.isActive === activityType) {
@@ -229,15 +225,15 @@ let buttonNumbersDebitors = document.querySelector('#num_deb');
 let buttonSumDebitIsactiveClients = document.querySelector('#sum_deb_act_clients');
 
 buttonSumBankMoney.addEventListener('click', function () {
-    bankMoney(bank);
+    calculateBankMoney(bank);
 });
 
 buttonSumDebitBank.addEventListener('click', function () {
-    bankDebit(bank);
+    calculareBankDebit(bank);
 });
 
 buttonNumbersDebitors.addEventListener('click', function () {
-    numbersDebtors(bank, false);
+    countingNumberDebtors(bank, false);
 });
 
 buttonSumDebitIsactiveClients.addEventListener('click', function () {
