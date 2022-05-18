@@ -11,6 +11,14 @@ class BankClient {
         this.debitAccounts = [];
         this.creditAccounts = [];
     }
+
+    addDebitAccount(currency, balance) {
+        this.debitAccounts.push(new Account(currency, balance));
+    }
+
+    addCreditAccount(currency, balance, creditLimit) {
+        this.creditAccounts.push(new Account(currency, balance, creditLimit));
+    }
 }
 
 class Account {
@@ -21,222 +29,230 @@ class Account {
     }
 }
 
-let bank = [];
-
-function addClient(id, name, isActive) {
-    bank.push(new BankClient(id, name, isActive));
-}
-
-let addForm = document.querySelector('.add_client');
-let addId = document.querySelector('.add_id_client');
-let addName = document.querySelector('.add_name_client');
-let addIsActive = document.querySelector('.add_isactive');
-let resultAdding = document.querySelector('.res_adding');
-
-
-addForm.addEventListener('submit', (event) => {
-    event.preventDefault();
-    let newClient = true;
-    bank.forEach(client => {
-        if (client.id === addId.value) {
-            newClient = false;
-        }
-    });
-    if (newClient) {
-        if (/^[0-9]+$/.test(addId.value) && /^[a-z\s]+$/i.test(addName.value)) {
-            addClient(addId.value, addName.value, addIsActive.checked);
-            resultAdding.innerHTML = `ID - ${addId.value} , Name - ${addName.value} , isActive - ${addIsActive.checked}`;
-            clearAddForm();
-        } else {
-            resultAdding.innerHTML = 'Данные для ввода не корректны';
-            clearAddForm();
-        }
-    } else {
-        resultAdding.innerHTML = 'Этот клиент уже внесен!';
-        clearAddForm();
+class Bank {
+    constructor() {
+        this.clients = [];
+        this.totalResult = document.querySelector('.total_result');
+        this.resultDebAccount = document.querySelector('.res_deb_account');
+        this.resultCreditAccount = document.querySelector('.res_credit_account');
     }
-    event.target.reset();
-});
 
-function clearAddForm() {
-    resultDebAccount.innerHTML = '';
-    resultCreditAccount.innerHTML = '';
-}
-
-let addFormDebAccount = document.querySelector('.add_debit_account');
-let addDebitCurrency = document.querySelector('.add_debit_currency');
-let addDebitBalance = document.querySelector('.add_debit_balance');
-let resultDebAccount = document.querySelector('.res_deb_account');
-
-addFormDebAccount.addEventListener('submit', (event) => {
-    event.preventDefault();
-    let debitBalance = +addDebitBalance.value;
-    if (/[\d]+/.test(debitBalance) && bank.length > 0) {
-        bank[bank.length - 1].debitAccounts.push(new Account(addDebitCurrency.value, debitBalance));
-        resultDebAccount.innerHTML = `Дебетовый счет в ${addDebitCurrency.value} на сумму ${debitBalance}`;
-    } else {
-        resultDebAccount.innerHTML = 'Данные для ввода не корректны';
+    addClient(id, name, isActive) {
+        this.clients.push(new BankClient(id, name, isActive));
     }
-    event.target.reset();
-});
-
-let addFormCreditAccount = document.querySelector('.add_credit_account');
-let addCreditCurrency = document.querySelector('.add_credit_currency');
-let addCreditBalance = document.querySelector('.add_credit_balance');
-let addCreditLimit = document.querySelector('.add_credit_limit');
-let resultCreditAccount = document.querySelector('.res_credit_account');
-
-addFormCreditAccount.addEventListener('submit', (event) => {
-    event.preventDefault();
-    let creditBalance = +addCreditBalance.value;
-    let creditLimit = +addCreditLimit.value;
-    if (/[\d]+/.test(creditBalance) && /[\d]+/.test(creditLimit) && bank.length > 0) {
-        bank[bank.length - 1].creditAccounts.push(new Account(addCreditCurrency.value, creditBalance, creditLimit));
-        resultCreditAccount.innerHTML = ` Кредитовый счет в ${addCreditCurrency.value} на сумму ${creditBalance} с лимитом ${creditLimit}`;
-    } else {
-        resultCreditAccount.innerHTML = 'Данные для ввода не корректны';
-    }
-    event.target.reset();
-});
-
-let findForm = document.querySelector('.find');
-let idByFind = document.querySelector('.find_by_id');
-let resultFinding = document.querySelector('.res_finding');
-let resultFindingAccounts = document.querySelector('.res_finding_accounts');
-
-findForm.addEventListener('submit', (event) => {
-    event.preventDefault();
-    resultFinding.innerHTML = 'Не является клиентом банка';
-    resultFindingAccounts.innerHTML = '';
-    for (let i = 0; i < bank.length; i++) {
-        if (bank[i].id === idByFind.value) {
-            resultFinding.innerHTML = `ID - ${bank[i].id} , Name - ${bank[i].name} , isActive - ${bank[i].isActive}`;
-            let consolidationAccounts = bank[i].debitAccounts.concat(bank[i].creditAccounts);
-            consolidationAccounts.forEach(account => {
-                resultFindingAccounts.innerHTML += `
-                    <div> -  в ${account.currency} на сумму ${account.balance} с лимитом ${account.creditLimit}</div>
-                `;
-            });
-        }
-    }
-    event.target.reset();
-});
-
-let formDelete = document.querySelector('.delete');
-let idForDelete = document.querySelector('.del_by_id');
-
-formDelete.addEventListener('submit', (event) => {
-    event.preventDefault();
-    for (let i = 0; i < bank.length; i++){
-        if (bank[i].id === idForDelete.value){
-            bank.splice(i, 1);
-        }
-    }
-    event.target.reset();
-});
-
-let totalResult = document.querySelector('.total_result');
-
-async function calculateBankMoney(arrayBankCustomers) {
-    let sum = 0;
-    await requestExchangeRate().then(exchangeRates => {
-        arrayBankCustomers.forEach(client => {
-            let consolidationAccounts = client.creditAccounts.concat(client.debitAccounts);
-            consolidationAccounts.forEach(account => sum += currencyConversion(account, account.balance, exchangeRates));
-        });
-    });
-    totalResult.innerHTML = sum.toFixed(2);
-}
-
-async function calculareBankDebit(arrayBankCustomers) {
-    let sum = 0;
-    let debtBalance = 0;
-    await requestExchangeRate().then(exchangeRates => {
-        arrayBankCustomers.forEach(client => {
-            client.creditAccounts.forEach(account => {
-                if (account.creditLimit > account.balance) {
-                    debtBalance = account.creditLimit - account.balance;
-                    sum += currencyConversion(account, debtBalance, exchangeRates);
-                }
+    
+    async calculateBankMoney(arrayBankCustomers) {
+        let sum = 0;
+        await this.requestExchangeRate().then(exchangeRates => {
+            arrayBankCustomers.forEach(client => {
+                let consolidationAccounts = client.creditAccounts.concat(client.debitAccounts);
+                consolidationAccounts.forEach(account => sum += this.currencyConversion(account, account.balance, exchangeRates));
             });
         });
-    });
-    totalResult.innerHTML = sum.toFixed(2);
-}
+        this.totalResult.innerHTML = sum.toFixed(2);
+    }
 
-function countingNumberDebtors(arrayBankCustomers, activityType) {
-    let count = 0;
-    arrayBankCustomers.forEach(client => {
-        if (client.isActive === activityType) {
-            client.creditAccounts.forEach(account => {
-                if ((account.balance - account.creditLimit) < 0) {
-                    count++;
-                }
+    async calculareBankDebit(arrayBankCustomers) {
+        let sum = 0;
+        let debtBalance = 0;
+        await this.requestExchangeRate().then(exchangeRates => {
+            arrayBankCustomers.forEach(client => {
+                client.creditAccounts.forEach(account => {
+                    if (account.creditLimit > account.balance) {
+                        debtBalance = account.creditLimit - account.balance;
+                        sum += this.currencyConversion(account, debtBalance, exchangeRates);
+                    }
+                });
             });
-        }
-    });
-    totalResult.innerHTML = count;
-}
+        });
+        this.totalResult.innerHTML = sum.toFixed(2);
+    }
 
-async function sumDebitInactiveClients(arrayBankCustomers, activityType) {
-    let sum = 0;
-    let debtBalance = 0;
-    await requestExchangeRate().then(exchangeRates => {
+    countingNumberDebtors(arrayBankCustomers, activityType) {
+        let count = 0;
         arrayBankCustomers.forEach(client => {
             if (client.isActive === activityType) {
                 client.creditAccounts.forEach(account => {
                     if ((account.balance - account.creditLimit) < 0) {
-                        debtBalance = account.creditLimit - account.balance;
-                        sum += currencyConversion(account, debtBalance, exchangeRates);
+                        count++;
                     }
                 });
             }
         });
-    });
-    totalResult.innerHTML = sum.toFixed(2);
-}
+        this.totalResult.innerHTML = count;
+    }
 
-async function requestExchangeRate() {
-    let promise = await fetch('https://api.privatbank.ua/p24api/pubinfo?json&exchange&coursid=5');
-    return await promise.json();
-}
-
-function currencyConversion(account, balance, exchangeRates, out) {
-    let result = 0;
-    let coef = 1;
-    out = out || 'USD';
-    exchangeRates.forEach(eachCurrency => {
-        if (account.currency === eachCurrency.ccy) {
-            exchangeRates.forEach(eachCurrency => {
-                if (out === eachCurrency.ccy) {
-                    coef = eachCurrency.buy;
+    async sumDebitInactiveClients(arrayBankCustomers, activityType) {
+        let sum = 0;
+        let debtBalance = 0;
+        await this.requestExchangeRate().then(exchangeRates => {
+            arrayBankCustomers.forEach(client => {
+                if (client.isActive === activityType) {
+                    client.creditAccounts.forEach(account => {
+                        if ((account.balance - account.creditLimit) < 0) {
+                            debtBalance = account.creditLimit - account.balance;
+                            sum += this.currencyConversion(account, debtBalance, exchangeRates);
+                        }
+                    });
                 }
             });
-            result = balance * eachCurrency.buy / coef;
-        } else if (eachCurrency.base_ccy === account.currency && eachCurrency.ccy === out) {
-            result = balance / eachCurrency.buy;
+        });
+        this.totalResult.innerHTML = sum.toFixed(2);
+    }
+
+    async requestExchangeRate() {
+        let promise = await fetch('https://api.privatbank.ua/p24api/pubinfo?json&exchange&coursid=5');
+        return await promise.json();
+    }
+
+    currencyConversion(account, balance, exchangeRates, out) {
+        let result = 0;
+        let coef = 1;
+        out = out || 'USD';
+        exchangeRates.forEach(eachCurrency => {
+            if (account.currency === eachCurrency.ccy) {
+                exchangeRates.forEach(eachCurrency => {
+                    if (out === eachCurrency.ccy) {
+                        coef = eachCurrency.buy;
+                    }
+                });
+                result = balance * eachCurrency.buy / coef;
+            } else if (eachCurrency.base_ccy === account.currency && eachCurrency.ccy === out) {
+                result = balance / eachCurrency.buy;
+            }
+        });
+        return result;
+    }
+
+    addNewClient() {
+        let addId = document.querySelector('.add_id_client');
+        let addName = document.querySelector('.add_name_client');
+        let addIsActive = document.querySelector('.add_isactive');
+        let resultAdding = document.querySelector('.res_adding');
+        let newClient = true;
+        this.clients.forEach(client => {
+            if (client.id === addId.value) {
+                newClient = false;
+            }
+        });
+        if (newClient) {
+            if (/^[0-9]+$/.test(addId.value) && /^[a-z\s]+$/i.test(addName.value)) {
+                this.addClient(addId.value, addName.value, addIsActive.checked);
+                resultAdding.innerHTML = `ID - ${addId.value} , Name - ${addName.value} , isActive - ${addIsActive.checked}`;
+                this.clearAddForm();
+            } else {
+                resultAdding.innerHTML = 'Данные для ввода не корректны';
+                this.clearAddForm();
+            }
+        } else {
+            resultAdding.innerHTML = 'Этот клиент уже внесен!';
+            this.clearAddForm();
         }
-    });
-    return result;
+    }
+
+    clearAddForm() {
+        this.resultDebAccount.innerHTML = '';
+        this.resultCreditAccount.innerHTML = '';
+    }
+
+    addNewDebitAccount() {
+        let addDebitCurrency = document.querySelector('.add_debit_currency');
+        let addDebitBalance = document.querySelector('.add_debit_balance');
+        let debitBalance = +addDebitBalance.value;
+        if (/[\d]+/.test(debitBalance) && debitBalance > 0 && this.clients.length > 0) {
+            this.clients[this.clients.length - 1].addDebitAccount(addDebitCurrency.value, debitBalance);
+            this.resultDebAccount.innerHTML = `Дебетовый счет в ${addDebitCurrency.value} на сумму ${debitBalance}`;
+        } else {
+            this.resultDebAccount.innerHTML = 'Данные для ввода не корректны';
+        }
+    }
+
+    addNewCreditAccount() {
+        let addCreditCurrency = document.querySelector('.add_credit_currency');
+        let addCreditBalance = document.querySelector('.add_credit_balance');
+        let addCreditLimit = document.querySelector('.add_credit_limit');
+        let creditBalance = +addCreditBalance.value;
+        let creditLimit = +addCreditLimit.value;
+        if (/[\d]+/.test(creditBalance) && /[\d]+/.test(creditLimit) && this.clients.length > 0) {
+            this.clients[this.clients.length - 1].addCreditAccount(addCreditCurrency.value, creditBalance, creditLimit);
+            this.resultCreditAccount.innerHTML = ` Кредитовый счет в ${addCreditCurrency.value} на сумму ${creditBalance} с лимитом ${creditLimit}`;
+        } else {
+            this.resultCreditAccount.innerHTML = 'Данные для ввода не корректны';
+        }
+    }
+
+    findClient() {
+        let idFind = document.querySelector('.find_id');
+        let resultFinding = document.querySelector('.res_finding');
+        let resultFindingAccounts = document.querySelector('.res_finding_accounts');
+        resultFinding.innerHTML = 'Не является клиентом банка';
+        resultFindingAccounts.innerHTML = '';
+        for (let i = 0; i < this.clients.length; i++) {
+            if (this.clients[i].id === idFind.value) {
+                resultFinding.innerHTML = `ID - ${this.clients[i].id} , Name - ${this.clients[i].name} , isActive - ${this.clients[i].isActive}`;
+                let consolidationAccounts = this.clients[i].debitAccounts.concat(this.clients[i].creditAccounts);
+                consolidationAccounts.forEach(account => {
+                    resultFindingAccounts.innerHTML += 
+                    `<div> -  в ${account.currency} на сумму ${account.balance} с лимитом ${account.creditLimit}</div>`;
+                });
+            }
+        }
+    }
+
+    deleteClient() {
+        let idDelete = document.querySelector('.del_id');
+        for (let i = 0; i < this.clients.length; i++) {
+            if (this.clients[i].id === idDelete.value) {
+                this.clients.splice(i, 1);
+            }
+        }
+    }
 }
 
-let buttonSumBankMoney = document.querySelector('#sum');
-let buttonSumDebitBank = document.querySelector('#deb_sum');
-let buttonNumbersDebitors = document.querySelector('#num_deb');
-let buttonSumDebitIsactiveClients = document.querySelector('#sum_deb_act_clients');
+let bank = new Bank();
 
-buttonSumBankMoney.addEventListener('click', function () {
-    calculateBankMoney(bank);
+document.querySelector('.add_client').addEventListener('submit', (event) => {
+    event.preventDefault();
+    bank.addNewClient();
+    event.target.reset();
 });
 
-buttonSumDebitBank.addEventListener('click', function () {
-    calculareBankDebit(bank);
+document.querySelector('.add_debit_account').addEventListener('submit', (event) => {
+    event.preventDefault();
+    bank.addNewDebitAccount();
+    event.target.reset();
 });
 
-buttonNumbersDebitors.addEventListener('click', function () {
-    countingNumberDebtors(bank, false);
+document.querySelector('.add_credit_account').addEventListener('submit', (event) => {
+    event.preventDefault();
+    bank.addNewCreditAccount();
+    event.target.reset();
 });
 
-buttonSumDebitIsactiveClients.addEventListener('click', function () {
-    sumDebitInactiveClients(bank, false);
+document.querySelector('.find').addEventListener('submit', (event) => {
+    event.preventDefault();
+    bank.findClient();
+    event.target.reset();
+});
+
+document.querySelector('.delete').addEventListener('submit', (event) => {
+    event.preventDefault();
+    bank.deleteClient();
+    event.target.reset();
+});
+
+document.querySelector('#sum').addEventListener('click', function () {
+    bank.calculateBankMoney(bank.clients);
+});
+
+document.querySelector('#deb_sum').addEventListener('click', function () {
+    bank.calculareBankDebit(bank.clients);
+});
+
+document.querySelector('#num_deb').addEventListener('click', function () {
+    bank.countingNumberDebtors(bank.clients, false);
+});
+
+document.querySelector('#sum_deb_act_clients').addEventListener('click', function () {
+    bank.sumDebitInactiveClients(bank.clients, false);
 });
