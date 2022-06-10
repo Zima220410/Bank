@@ -148,6 +148,7 @@ class Bank {
             resultAdding.innerHTML = 'Этот клиент уже внесен!';
             this.clearAddForm();
         }
+        return resultAdding.innerHTML;
     }
 
     clearAddForm() {
