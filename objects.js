@@ -1,6 +1,7 @@
 // Объекты
 // 1.	Клиенты банка, имеют такие характеристики - фио, активный или нет, дата регистрации в банке, счета. Существует два типа счетов: дебетовый и кредитовый. Дебитовый счет имеет текущий баланс либо он положителен либо нулевой. Кредитовый счет имеет два баланса: личные средства, кредитные средства и кредитный лимит. У каждого счета есть активность, дата активности когда заканчивается срок годности пластиковой карты. У каждого счета есть тип валюты, UAH, RUB, USD, GBP, EUR и другие. Подсчитать общее количество денег внутри банка в долларовом эквиваленте учитывая кредитные лимиты и снятие средств. Посчитать сколько всего денег в долларовом эквиваленте все клиенты должны банку. Посчитать сколько неактивных клиентов должны погасить кредит банку и на какую общую сумму. Аналогично для активных. Для получения актуальных курсов валют использовать API (которое будет предоставлено). Промисы использовать для работы с API в целях отправки запросов на сервер. Создать отдельный git-репозиторий для этого проекта и дальше работать с этим проектом в этом репозитории.
 // 2.	Вывести задания из раздела “Объекты” в HTML на страницу браузера. Создать формы добавления новых элементов, реализовать возможность удаления и изменения данных.
+'use strict';
 
 class BankClient {
     constructor(id, name, isActive) {
@@ -41,22 +42,21 @@ class Bank {
         this.clients.push(new BankClient(id, name, isActive));
     }
     
-    async calculateBankMoney(arrayBankCustomers) {
+    async calculateBankMoney(customers) {
         let sum = 0;
         await this.requestExchangeRate().then(exchangeRates => {
-            arrayBankCustomers.forEach(client => {
-                let consolidationAccounts = client.creditAccounts.concat(client.debitAccounts);
-                consolidationAccounts.forEach(account => sum += this.currencyConversion(account, account.balance, exchangeRates));
+            customers.forEach(client => {
+                [...client.creditAccounts, ...client.debitAccounts].forEach(account => sum += this.currencyConversion(account, account.balance, exchangeRates));
             });
         });
         this.totalResult.innerHTML = sum.toFixed(2);
     }
 
-    async calculareBankDebit(arrayBankCustomers) {
+    async calculareBankDebit(customers) {
         let sum = 0;
         let debtBalance = 0;
         await this.requestExchangeRate().then(exchangeRates => {
-            arrayBankCustomers.forEach(client => {
+            customers.forEach(client => {
                 client.creditAccounts.forEach(account => {
                     if (account.creditLimit > account.balance) {
                         debtBalance = account.creditLimit - account.balance;
@@ -68,9 +68,9 @@ class Bank {
         this.totalResult.innerHTML = sum.toFixed(2);
     }
 
-    countingNumberDebtors(arrayBankCustomers, activityType) {
+    countingNumberDebtors(customers, activityType) {
         let count = 0;
-        arrayBankCustomers.forEach(client => {
+        customers.forEach(client => {
             if (client.isActive === activityType) {
                 client.creditAccounts.forEach(account => {
                     if ((account.balance - account.creditLimit) < 0) {
@@ -82,11 +82,11 @@ class Bank {
         this.totalResult.innerHTML = count;
     }
 
-    async sumDebitInactiveClients(arrayBankCustomers, activityType) {
+    async sumDebitInactiveClients(customers, activityType) {
         let sum = 0;
         let debtBalance = 0;
         await this.requestExchangeRate().then(exchangeRates => {
-            arrayBankCustomers.forEach(client => {
+            customers.forEach(client => {
                 if (client.isActive === activityType) {
                     client.creditAccounts.forEach(account => {
                         if ((account.balance - account.creditLimit) < 0) {
