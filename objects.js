@@ -42,11 +42,17 @@ class Bank {
         this.clients.push(new BankClient(id, name, isActive));
     }
 
-    async calculateBankMoney(customers, callback) {
+    async calculateBankMoney(customers) {
         let sum = 0;
         await this.requestExchangeRate().then(exchangeRates => {
             customers.forEach(client => {
-                callback(client).forEach(account => sum += this.currencyConversion(account, account.balance, exchangeRates));
+                for (let data in client){
+                    if (typeof(client[data]) === 'object'){
+                        for (let bill in client[data]){
+                            sum += this.currencyConversion(client[data][bill], client[data][bill].balance, exchangeRates)
+                        }
+                    }
+                }
             });
         });
         this.totalResult.innerHTML = sum.toFixed(2);
@@ -243,9 +249,7 @@ document.querySelector('.delete').addEventListener('submit', (event) => {
 });
 
 document.querySelector('#sum').addEventListener('click', function () {
-    bank.calculateBankMoney(bank.clients, function (client) {
-        return client.debitAccounts.concat(client.creditAccounts);
-    });
+    bank.calculateBankMoney(bank.clients);
 });
 
 document.querySelector('#deb_sum').addEventListener('click', function () {
