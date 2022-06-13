@@ -46,9 +46,9 @@ class Bank {
         let sum = 0;
         await this.requestExchangeRate().then(exchangeRates => {
             customers.forEach(client => {
-                for (let data in client){
-                    if (typeof(client[data]) === 'object'){
-                        for (let bill in client[data]){
+                for (let data in client) {
+                    if (typeof (client[data]) === 'object') {
+                        for (let bill in client[data]) {
                             sum += this.currencyConversion(client[data][bill], client[data][bill].balance, exchangeRates)
                         }
                     }
@@ -136,6 +136,7 @@ class Bank {
         let addIsActive = document.querySelector('.add_isactive');
         let resultAdding = document.querySelector('.res_adding');
         let newClient = true;
+        let viewInfoClient;
         this.clients.forEach(client => {
             if (client.id === addId.value) {
                 newClient = false;
@@ -144,22 +145,16 @@ class Bank {
         if (newClient) {
             if (/^[0-9]+$/.test(addId.value) && /^[a-z\s]+$/i.test(addName.value)) {
                 this.addClient(addId.value, addName.value, addIsActive.checked);
-                resultAdding.innerHTML = `ID - ${addId.value} , Name - ${addName.value} , isActive - ${addIsActive.checked}`;
-                this.clearAddForm();
+                viewInfoClient = `ID - ${addId.value} , Name - ${addName.value} , isActive - ${addIsActive.checked}`;
             } else {
-                resultAdding.innerHTML = 'Данные для ввода не корректны';
-                this.clearAddForm();
+                viewInfoClient = 'Данные для ввода не корректны';
             }
         } else {
-            resultAdding.innerHTML = 'Этот клиент уже внесен!';
-            this.clearAddForm();
+            viewInfoClient = 'Этот клиент уже внесен!';
         }
-        return resultAdding.innerHTML;
-    }
-
-    clearAddForm() {
-        this.resultDebAccount.innerHTML = '';
-        this.resultCreditAccount.innerHTML = '';
+        return resultAdding.innerHTML = viewInfoClient,
+            this.resultDebAccount.innerHTML = '',
+            this.resultCreditAccount.innerHTML = '';
     }
 
     addNewDebitAccount() {
@@ -197,11 +192,14 @@ class Bank {
         for (let i = 0; i < this.clients.length; i++) {
             if (this.clients[i].id === idFind.value) {
                 resultFinding.innerHTML = `ID - ${this.clients[i].id} , Name - ${this.clients[i].name} , isActive - ${this.clients[i].isActive}`;
-                let consolidationAccounts = this.clients[i].debitAccounts.concat(this.clients[i].creditAccounts);
-                consolidationAccounts.forEach(account => {
-                    resultFindingAccounts.innerHTML += 
-                    `<div> -  в ${account.currency} на сумму ${account.balance} с лимитом ${account.creditLimit}</div>`;
-                });
+                for (let data in this.clients[i]) {
+                    if (typeof (this.clients[i][data]) === 'object') {
+                        for (let bill in this.clients[i][data]) {
+                            resultFindingAccounts.innerHTML +=
+                                `<div> -  в ${this.clients[i][data][bill].currency} на сумму ${this.clients[i][data][bill].balance} с лимитом ${this.clients[i][data][bill].creditLimit}</div>`;
+                        }
+                    }
+                }
             }
         }
     }
