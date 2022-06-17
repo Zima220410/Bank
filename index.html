@@ -18,33 +18,22 @@
         </form>
     </div>
     <div>
-        <form class="add_debit_account">
-            <div>Добавление дебитного счета</div>
-            <select class="add_debit_currency">
+        <form class="add_account">
+            <div>Добавление счета</div>
+            <select class="add_currency">
                 <option value="USD" selected="selected">USD</option>
                 <option value="EUR">EUR</option>
                 <option value="UAH">UAH</option>
             </select>
-            <input class="add_debit_balance" type="text" placeholder="Введите баланс">
-            <button>Добавить дебетовый счет</button>
-        </form>
-    </div>
-    <div>
-        <form class="add_credit_account">
-            <div>Добавление кредитного счета</div>
-            <select class="add_credit_currency">
-                <option value="USD" selected="selected">USD</option>
-                <option value="EUR">EUR</option>
-                <option value="UAH">UAH</option>
-            </select>
-            <input class="add_credit_balance" type="text" placeholder="Введите баланс">
+            <input class="add_balance" type="text" placeholder="Введите баланс">
             <input class="add_credit_limit" type="text" placeholder="Введите лимит">
-            <button>Добавить кредитовый счет</button>
+            Дебетовый счет?
+            <input class="add_isdebit_bill" type="checkbox">
+            <button>Добавить счет</button>
         </form>
     </div>
     <div>Вы добавили :
         <div class="res_adding"></div>
-        <div class="res_deb_account"></div>
         <div class="res_credit_account"></div>
     </div>
     <div>

@@ -4,29 +4,25 @@
 'use strict';
 
 class BankClient {
-    constructor(id, name, isActive) {
+    constructor(id, name, isActive, dataRegistrClient, debitAccounts, creditAccounts) {
         this.id = id;
         this.name = name;
         this.isActive = isActive;
         this.dataRegistrClient = new Date();
-        this.debitAccounts = [];
-        this.creditAccounts = [];
+        this.accounts = [];
     }
 
-    addDebitAccount(currency, balance) {
-        this.debitAccounts.push(new Account(currency, balance));
-    }
-
-    addCreditAccount(currency, balance, creditLimit) {
-        this.creditAccounts.push(new Account(currency, balance, creditLimit));
+    addAccount(currency, balance, creditLimit, billIsDebit) {
+        this.accounts.push(new Account(currency, balance, creditLimit, billIsDebit));
     }
 }
 
 class Account {
-    constructor(currency, balance, creditLimit = 0) {
+    constructor(currency, balance, creditLimit = 0, billIsDebit) {
         this.currency = currency;
         this.balance = balance;
         this.creditLimit = creditLimit;
+        this.billIsDebit = billIsDebit;
     }
 }
 
@@ -34,8 +30,7 @@ class Bank {
     constructor() {
         this.clients = [];
         this.totalResult = document.querySelector('.total_result');
-        this.resultDebAccount = document.querySelector('.res_deb_account');
-        this.resultCreditAccount = document.querySelector('.res_credit_account');
+        this.resultAccount = document.querySelector('.res_credit_account');
     }
 
     addClient(id, name, isActive) {
@@ -46,13 +41,7 @@ class Bank {
         let sum = 0;
         await this.requestExchangeRate().then(exchangeRates => {
             customers.forEach(client => {
-                for (let data in client) {
-                    if (typeof (client[data]) === 'object') {
-                        for (let bill in client[data]) {
-                            sum += this.currencyConversion(client[data][bill], client[data][bill].balance, exchangeRates)
-                        }
-                    }
-                }
+                client.accounts.forEach(account => sum += this.currencyConversion(account, account.balance, exchangeRates))
             });
         });
         this.totalResult.innerHTML = sum.toFixed(2);
@@ -63,8 +52,8 @@ class Bank {
         let debtBalance = 0;
         await this.requestExchangeRate().then(exchangeRates => {
             customers.forEach(client => {
-                client.creditAccounts.forEach(account => {
-                    if (account.creditLimit > account.balance) {
+                client.accounts.forEach(account => {
+                    if (account.creditLimit > account.balance && account.billIsDebit === false) {
                         debtBalance = account.creditLimit - account.balance;
                         sum += this.currencyConversion(account, debtBalance, exchangeRates);
                     }
@@ -78,8 +67,8 @@ class Bank {
         let count = 0;
         customers.forEach(client => {
             if (client.isActive === activityType) {
-                client.creditAccounts.forEach(account => {
-                    if ((account.balance - account.creditLimit) < 0) {
+                client.accounts.forEach(account => {
+                    if (account.balance - account.creditLimit < 0 && account.billIsDebit === false) {
                         count++;
                     }
                 });
@@ -94,8 +83,8 @@ class Bank {
         await this.requestExchangeRate().then(exchangeRates => {
             customers.forEach(client => {
                 if (client.isActive === activityType) {
-                    client.creditAccounts.forEach(account => {
-                        if ((account.balance - account.creditLimit) < 0) {
+                    client.accounts.forEach(account => {
+                        if ((account.balance - account.creditLimit) < 0 && account.billIsDebit === false) {
                             debtBalance = account.creditLimit - account.balance;
                             sum += this.currencyConversion(account, debtBalance, exchangeRates);
                         }
@@ -153,33 +142,24 @@ class Bank {
             viewInfoClient = 'Этот клиент уже внесен!';
         }
         return resultAdding.innerHTML = viewInfoClient,
-            this.resultDebAccount.innerHTML = '',
-            this.resultCreditAccount.innerHTML = '';
+            this.resultAccount.innerHTML = '';
     }
 
-    addNewDebitAccount() {
-        let addDebitCurrency = document.querySelector('.add_debit_currency');
-        let addDebitBalance = document.querySelector('.add_debit_balance');
-        let debitBalance = +addDebitBalance.value;
-        if (/[\d]+/.test(debitBalance) && debitBalance > 0 && this.clients.length > 0) {
-            this.clients[this.clients.length - 1].addDebitAccount(addDebitCurrency.value, debitBalance);
-            this.resultDebAccount.innerHTML = `Дебетовый счет в ${addDebitCurrency.value} на сумму ${debitBalance}`;
-        } else {
-            this.resultDebAccount.innerHTML = 'Данные для ввода не корректны';
-        }
-    }
-
-    addNewCreditAccount() {
-        let addCreditCurrency = document.querySelector('.add_credit_currency');
-        let addCreditBalance = document.querySelector('.add_credit_balance');
+    addNewAccount() {
+        let addCurrency = document.querySelector('.add_currency');
+        let addBalance = document.querySelector('.add_balance');
         let addCreditLimit = document.querySelector('.add_credit_limit');
-        let creditBalance = +addCreditBalance.value;
+        let addIsDebitBill = document.querySelector('.add_isdebit_bill');
+        let balance = +addBalance.value;
         let creditLimit = +addCreditLimit.value;
-        if (/[\d]+/.test(creditBalance) && /[\d]+/.test(creditLimit) && this.clients.length > 0) {
-            this.clients[this.clients.length - 1].addCreditAccount(addCreditCurrency.value, creditBalance, creditLimit);
-            this.resultCreditAccount.innerHTML = ` Кредитовый счет в ${addCreditCurrency.value} на сумму ${creditBalance} с лимитом ${creditLimit}`;
+        if (addIsDebitBill.checked === true) {
+            creditLimit = 0;
+        }
+        if (/[\d]+/.test(balance) && /[\d]+/.test(creditLimit) && this.clients.length > 0) {
+            this.clients[this.clients.length - 1].addAccount(addCurrency.value, balance, creditLimit, addIsDebitBill.checked);
+            this.resultAccount.innerHTML = `Счет в ${addCurrency.value} на сумму ${balance} с лимитом ${creditLimit} (дебетовый - ${addIsDebitBill.checked})`;
         } else {
-            this.resultCreditAccount.innerHTML = 'Данные для ввода не корректны';
+            this.resultAccount.innerHTML = 'Данные для ввода не корректны';
         }
     }
 
@@ -192,14 +172,10 @@ class Bank {
         for (let i = 0; i < this.clients.length; i++) {
             if (this.clients[i].id === idFind.value) {
                 resultFinding.innerHTML = `ID - ${this.clients[i].id} , Name - ${this.clients[i].name} , isActive - ${this.clients[i].isActive}`;
-                for (let data in this.clients[i]) {
-                    if (typeof (this.clients[i][data]) === 'object') {
-                        for (let bill in this.clients[i][data]) {
-                            resultFindingAccounts.innerHTML +=
-                                `<div> -  в ${this.clients[i][data][bill].currency} на сумму ${this.clients[i][data][bill].balance} с лимитом ${this.clients[i][data][bill].creditLimit}</div>`;
-                        }
-                    }
-                }
+                this.clients[i].accounts.forEach(account => {
+                    resultFindingAccounts.innerHTML += 
+                        `<div> - в ${account.currency} на сумму ${account.balance} с лимитом ${account.creditLimit}</div>`;
+                });
             }
         }
     }
@@ -222,15 +198,9 @@ document.querySelector('.add_client').addEventListener('submit', (event) => {
     event.target.reset();
 });
 
-document.querySelector('.add_debit_account').addEventListener('submit', (event) => {
+document.querySelector('.add_account').addEventListener('submit', (event) => {
     event.preventDefault();
-    bank.addNewDebitAccount();
-    event.target.reset();
-});
-
-document.querySelector('.add_credit_account').addEventListener('submit', (event) => {
-    event.preventDefault();
-    bank.addNewCreditAccount();
+    bank.addNewAccount();
     event.target.reset();
 });
 
